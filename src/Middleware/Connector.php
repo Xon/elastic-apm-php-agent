@@ -120,12 +120,12 @@ class Connector
 
             if ( !empty($spans) ) {
                 foreach ( $spans as $i => $span ) {
-                    $span = array_merge($span, [
+                    $span = array_merge([
                         'id' => $obj['id'] . '-' . $i,
                         'parent_id' => $obj['id'],
                         'transaction_id' => $obj['id'],
                         'trace_id' => $obj['trace_id'],
-                    ]);
+                    ], $span);
                     $body .= "\n" . json_encode(['span' => $span]);
                 }
             }
