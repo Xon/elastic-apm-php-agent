@@ -96,6 +96,16 @@ class Transaction extends EventBean implements \JsonSerializable
      */
     public function stop(int $duration = null)
     {
+        while($this->spanStack)
+        {
+            /** @var Span $activeSpan */
+            $activeSpan = array_pop($this->spanStack);
+            if ($activeSpan)
+            {
+                $activeSpan->stop();
+            }
+        }
+
         // Stop the Timer
         $this->timer->stop();
 
