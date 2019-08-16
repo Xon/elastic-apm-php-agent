@@ -4,15 +4,16 @@ namespace PhilKra;
 
 use PhilKra\Events\DefaultEventFactory;
 use PhilKra\Events\EventFactoryInterface;
+use PhilKra\Events\Span;
+use PhilKra\Events\Transaction;
+use PhilKra\Exception\Transaction\NestedTransactionException;
+use PhilKra\Exception\Transaction\NoTransactionInProgressException;
+use PhilKra\Exception\Transaction\UnknownTransactionException;
+use PhilKra\Helper\Config;
+use PhilKra\Helper\Timer;
+use PhilKra\Middleware\Connector;
 use PhilKra\Stores\ErrorsStore;
 use PhilKra\Stores\TransactionsStore;
-use PhilKra\Events\Transaction;
-use PhilKra\Events\Error;
-use PhilKra\Helper\Timer;
-use PhilKra\Helper\Config;
-use PhilKra\Middleware\Connector;
-use PhilKra\Exception\Transaction\DuplicateTransactionNameException;
-use PhilKra\Exception\Transaction\UnknownTransactionException;
 
 /**
  *
@@ -82,6 +83,19 @@ class Agent
     private $eventFactory;
 
     /**
+     * @var \PhilKra\Events\Transaction
+     */
+    private $currentTransaction;
+
+    /**
+     * @return Transaction
+     */
+    public function getCurrentTransaction(): Transaction
+    {
+        return $this->currentTransaction;
+    }
+
+    /**
      * Setup the APM Agent
      *
      * @param array                 $config
@@ -131,6 +145,11 @@ class Agent
      */
     public function startTransaction(string $name, array $context = [], float $start = null): Transaction
     {
+        if ($this->currentTransaction !== null) {
+            // nested transactions are not supported in the protocol, need to use spans on the current transaction
+            throw new NestedTransactionException($name);
+        }
+
         // Create and Store Transaction
         $this->transactionsStore->register(
             $this->eventFactory->createTransaction($name, array_replace_recursive($this->sharedContext, $context), $start)
@@ -142,6 +161,8 @@ class Agent
         if (null === $start) {
             $transaction->start();
         }
+
+        $this->currentTransaction = $transaction;
 
         return $transaction;
     }
@@ -158,9 +179,12 @@ class Agent
      */
     public function stopTransaction(string $name, array $meta = [])
     {
-        $this->getTransaction($name)->setBacktraceLimit($this->config->get('backtraceLimit', 0));
-        $this->getTransaction($name)->stop();
-        $this->getTransaction($name)->setMeta($meta);
+        $transaction = $this->getTransaction($name);
+        $transaction->setBacktraceLimit($this->config->get('backtraceLimit', 0));
+        $transaction->stop();
+        $transaction->setMeta($meta);
+
+        $this->currentTransaction = null;
     }
 
     /**
@@ -180,6 +204,20 @@ class Agent
         }
 
         return $transaction;
+    }
+
+    public function startSpan(string $name, array $context = []): Span
+    {
+        if ($this->currentTransaction === null)
+        {
+            // nested transactions are not supported in the protocol, need to use spans on the current transaction
+            throw new NoTransactionInProgressException($name);
+        }
+
+        $span = $this->eventFactory->createSpan($name, array_replace_recursive($this->sharedContext, $context), $this->currentTransaction);
+        $span->start();
+
+        return $span;
     }
 
     /**

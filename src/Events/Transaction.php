@@ -41,7 +41,7 @@ class Transaction extends EventBean implements \JsonSerializable
     /**
      * The spans for the transaction
      *
-     * @var array
+     * @var Span[]
      */
     private $spans = [];
 
@@ -58,6 +58,11 @@ class Transaction extends EventBean implements \JsonSerializable
      * @var int
      */
     private $backtraceLimit = 0;
+
+    /**
+     * @var array
+     */
+    private $spanStack;
 
     /**
     * Create the Transaction
@@ -133,9 +138,43 @@ class Transaction extends EventBean implements \JsonSerializable
     }
 
     /**
-     * Set the spans for the transacton
+     * @param Span $span
+     */
+    public function addSpan(Span $span)
+    {
+        $this->spans[] = $span;
+    }
+
+    public function pushActiveSpan(Span $span)
+    {
+        if ($this->spanStack)
+        {
+            $lastSpan = end($this->spanStack);
+            if ($lastSpan)
+            {
+                $span->setParentSpan($lastSpan);
+            }
+        }
+
+        $this->spanStack[] = $span;
+    }
+
+    public function popActiveSpan(Span $span)
+    {
+        while ($this->spanStack)
+        {
+            $lastElement = array_pop($this->spanStack);
+            if (!$lastElement || $lastElement->getId() === $span->getId())
+            {
+                break;
+            }
+        }
+    }
+
+    /**
+     * Set the spans for the transaction
      *
-     * @param array $spans
+     * @param Span[] $spans
      *
      * @return void
      */
@@ -172,14 +211,25 @@ class Transaction extends EventBean implements \JsonSerializable
         $this->backtraceLimit = $limit;
     }
 
+    public function getBacktraceLimit() :int
+    {
+        return $this->backtraceLimit;
+    }
+
     /**
      * Get the spans from the transaction
      *
      * @return array
      */
-    private function getSpans(): array
+    private function getSerializedSpans(): array
     {
-        return $this->spans;
+        $spans = [];
+        foreach ($this->spans as $span)
+        {
+            $spans[] = $span->jsonSerialize();
+        }
+
+        return $spans;
     }
 
     /**
@@ -189,11 +239,12 @@ class Transaction extends EventBean implements \JsonSerializable
     */
     public function jsonSerialize() : array
     {
+        $spans = $this->getSerializedSpans();
         return [
           'id'        => $this->getId(),
           'trace_id'  => $this->getId(),
           'span_count' => [
-              'started' => count($this->getSpans()),
+              'started' => count($spans),
               'dropped' => 0
           ],
           'timestamp' => $this->getTimestamp(),
@@ -202,7 +253,7 @@ class Transaction extends EventBean implements \JsonSerializable
           'type'      => $this->getMetaType(),
           'result'    => $this->getMetaResult(),
           'context'   => $this->getContext(),
-          'spans'     => $this->getSpans(),
+          'spans'     => $spans,
           'errors'    => $this->getErrors(),
           'processor' => [
               'event' => 'transaction',
