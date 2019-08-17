@@ -206,6 +206,26 @@ class Agent
         return $transaction;
     }
 
+    /**
+     * @param array $context
+     * @param string[] $keys
+     * @return array
+     */
+    private function extractMeta(array &$context, array $keys)
+    {
+        $meta = [];
+        foreach($keys as $key)
+        {
+            if (isset($context[$key]))
+            {
+                $meta[$key] = $context[$key];
+                unset($context[$key]);
+            }
+        }
+
+        return $meta;
+    }
+
     public function startSpan(string $name, array $context = []): Span
     {
         if ($this->currentTransaction === null)
@@ -214,7 +234,9 @@ class Agent
             throw new NoTransactionInProgressException($name);
         }
 
+        $meta = $this->extractMeta($context, ['type', 'action', 'subtype']);
         $span = $this->eventFactory->createSpan($name, array_replace_recursive($this->sharedContext, $context), $this->currentTransaction);
+        $span->setMeta($meta);
         $span->start();
 
         return $span;
