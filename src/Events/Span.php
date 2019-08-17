@@ -69,7 +69,6 @@ class Span extends EventBean implements \JsonSerializable
     public function start()
     {
         $this->transaction->pushActiveSpan($this);
-        $this->summary['start'] = (float)((\microtime( true) * 1000000 - $this->getTransaction()->getTimestamp()) / 1000);
         $this->timer->start();
     }
 
@@ -160,7 +159,7 @@ class Span extends EventBean implements \JsonSerializable
             'parent_id'      => $this->parentSpan ? $this->parentSpan->getId() : $this->getTransaction()->getId(),
             'trace_id'       => $this->getTransaction()->getId(),
             'name'           => $this->getSpanName(),
-            'start'          => $this->summary['start'],
+            'timestamp'      => $this->getTimestamp(),
             'duration'       => $this->summary['duration'],
             'context'        => $this->getContext(),
             'stacktrace'     => $this->mapStacktrace($this->summary['backtrace']),
