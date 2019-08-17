@@ -160,6 +160,7 @@ class Span extends EventBean implements \JsonSerializable
             'parent_id'      => $this->parentSpan ? $this->parentSpan->getId() : $this->getTransaction()->getId(),
             'trace_id'       => $this->getTransaction()->getId(),
             'name'           => $this->getSpanName(),
+            'start'          => $this->summary['start'],
             'duration'       => $this->summary['duration'],
             'context'        => $this->getContext(),
             'stacktrace'     => $this->mapStacktrace($this->summary['backtrace']),
