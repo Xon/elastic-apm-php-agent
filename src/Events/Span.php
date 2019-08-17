@@ -41,6 +41,8 @@ class Span extends EventBean implements \JsonSerializable
 
     private $captureStackTrace = true;
 
+    private $dropSpan = false;
+
     /**
      * @var Span|null
      */
@@ -77,6 +79,22 @@ class Span extends EventBean implements \JsonSerializable
     public function setCaptureStackTrace(bool $captureStackTrace): void
     {
         $this->captureStackTrace = $captureStackTrace;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isDropSpan(): bool
+    {
+        return $this->dropSpan;
+    }
+
+    /**
+     * @param bool $dropSpan
+     */
+    public function setDropSpan(bool $dropSpan): void
+    {
+        $this->dropSpan = $dropSpan;
     }
 
     /**

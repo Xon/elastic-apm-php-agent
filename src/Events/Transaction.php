@@ -229,13 +229,19 @@ class Transaction extends EventBean implements \JsonSerializable
     /**
      * Get the spans from the transaction
      *
+     * @param int $dropCount
      * @return array
      */
-    private function getSerializedSpans(): array
+    private function getSerializedSpans(int &$dropCount): array
     {
         $spans = [];
         foreach ($this->spans as $span)
         {
+            if ($span->isDropSpan())
+            {
+                $dropCount++;
+                continue;
+            }
             $spans[] = $span->jsonSerialize();
         }
 
@@ -249,13 +255,14 @@ class Transaction extends EventBean implements \JsonSerializable
     */
     public function jsonSerialize() : array
     {
-        $spans = $this->getSerializedSpans();
+        $dropCount = 0;
+        $spans = $this->getSerializedSpans($dropCount);
         return [
           'id'        => $this->getId(),
           'trace_id'  => $this->getId(),
           'span_count' => [
               'started' => count($spans),
-              'dropped' => 0
+              'dropped' => $dropCount,
           ],
           'timestamp' => $this->getTimestamp(),
           'name'      => $this->getTransactionName(),
