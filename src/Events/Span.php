@@ -39,6 +39,8 @@ class Span extends EventBean implements \JsonSerializable
         'backtrace' => null,
     ];
 
+    private $captureStackTrace = true;
+
     /**
      * @var Span|null
      */
@@ -59,6 +61,22 @@ class Span extends EventBean implements \JsonSerializable
         $this->parentSpan = $parentSpan;
         $transaction->addSpan($this);
         $this->timer = new Timer();
+    }
+
+    /**
+     * @return bool
+     */
+    public function isCaptureStackTrace(): bool
+    {
+        return $this->captureStackTrace;
+    }
+
+    /**
+     * @param bool $captureStackTrace
+     */
+    public function setCaptureStackTrace(bool $captureStackTrace): void
+    {
+        $this->captureStackTrace = $captureStackTrace;
     }
 
     /**
@@ -87,7 +105,7 @@ class Span extends EventBean implements \JsonSerializable
 
         // Store Summary
         $this->summary['duration']  = $duration ?? round($this->timer->getDurationInMilliseconds(), 3);
-        $this->summary['backtrace'] = debug_backtrace($this->getTransaction()->getBacktraceLimit());
+        $this->summary['backtrace'] = $this->isCaptureStackTrace() ? debug_backtrace($this->getTransaction()->getBacktraceLimit()) : null;
     }
 
     /**

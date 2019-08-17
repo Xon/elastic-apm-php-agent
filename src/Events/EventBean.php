@@ -316,8 +316,12 @@ class EventBean
      * @param $backTrace
      * @return array
      */
-    protected function mapStacktrace($backTrace) : array
+    protected function mapStacktrace($backTrace) : ?array
     {
+        if (!$backTrace)
+        {
+            return null;
+        }
         $stacktrace = [];
 
         foreach ($backTrace as $trace) {
