@@ -182,6 +182,13 @@ class Span extends EventBean implements \JsonSerializable
         return $this->summary;
     }
 
+    protected function getContext() : array
+    {
+        $contexts = $this->contexts;
+        unset($contexts['response']);
+        return \array_filter($contexts);
+    }
+
     /**
     * Serialize Transaction Event
     *

@@ -45,7 +45,7 @@ class EventBean
      *
      * @var array
      */
-    private $contexts = [
+    protected $contexts = [
         'request'  => [],
         'user'     => [],
         'custom'   => [],
@@ -286,7 +286,7 @@ class EventBean
      *
      * @return array
      */
-    final protected function getContext() : array
+    protected function getContext() : array
     {
         $context = [
             'request' => empty($this->contexts['request']) ? $this->generateRequest() : $this->contexts['request']
